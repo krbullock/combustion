@@ -3,7 +3,7 @@ module Combustion
     def self.setup(database)
       silence_stream(STDOUT) do
         reset_database(database)
-        load_schema
+        load_schema(database)
         migrate
       end
     end
@@ -42,14 +42,20 @@ module Combustion
       end
     end
 
-    def self.load_schema
+    def self.load_schema(database=nil)
       case Combustion.schema_format
       when :ruby
-        load Rails.root.join('db', 'schema.rb')
+        if database && File.exist?(Rails.root.join('db', "schema_#{database}.rb"))
+          load Rails.root.join('db', "schema_#{database}.rb")
+        else
+          load Rails.root.join('db', 'schema.rb')
+        end
       when :sql
-        ActiveRecord::Base.connection.execute(
-          File.read(Rails.root.join('db', 'structure.sql'))
-        )
+        sqlf = Rails.root.join('db', 'structure.sql')
+        if database && File.exist?(Rails.root.join('db', "structure_#{database}.sql"))
+          sqlf = Rails.root.join('db', "structure_#{database}.sql")
+        end
+        ActiveRecord::Base.connection.execute(File.read(sqlf))
       else
         raise "Unknown schema format: #{Combustion.schema_format}"
       end
