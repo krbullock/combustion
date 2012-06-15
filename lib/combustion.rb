@@ -15,6 +15,7 @@ module Combustion
   end
 
   def self.initialize!(*modules)
+    opts = modules.extract_options!
     modules = Modules if modules == [:all]
     modules.each { |mod| require "#{mod}/railtie" }
 
@@ -22,7 +23,7 @@ module Combustion
     Combustion::Application.initialize!
 
     if modules.map(&:to_s).include? 'active_record'
-      Combustion::Database.setup
+      Combustion::Database.setup(opts[:database])
     end
 
     RSpec.configure do |config|

@@ -1,44 +1,44 @@
 module Combustion
   class Database
-    def self.setup
+    def self.setup(database)
       silence_stream(STDOUT) do
-        reset_database
+        reset_database(database)
         load_schema
         migrate
       end
     end
 
-    def self.reset_database
-      abcs = ActiveRecord::Base.configurations
-      case abcs['test']['adapter']
+    def self.reset_database(database=nil)
+      database ||= 'test'
+      testdb = ActiveRecord::Base.configurations[database]
+      case testdb['adapter']
       when /mysql/
-        ActiveRecord::Base.establish_connection(:test)
-        ActiveRecord::Base.connection.recreate_database(abcs['test']['database'],
-          mysql_creation_options(abcs['test']))
-        ActiveRecord::Base.establish_connection(:test)
+        ActiveRecord::Base.establish_connection(database)
+        ActiveRecord::Base.connection.recreate_database(testdb['database'],
+          mysql_creation_options(testdb))
+        ActiveRecord::Base.establish_connection(database)
       when /postgresql/
         ActiveRecord::Base.clear_active_connections!
-        drop_database(abcs['test'])
-        create_database(abcs['test'])
+        drop_database(testdb)
+        create_database(testdb)
       when /sqlite/
-        drop_database(abcs['test'])
-        create_database(abcs['test'])
+        drop_database(testdb)
+        create_database(testdb)
       when 'sqlserver'
-        test = abcs.deep_dup['test']
-        test_database = test['database']
-        test['database'] = 'master'
-        ActiveRecord::Base.establish_connection(test)
-        ActiveRecord::Base.connection.recreate_database!(test_database)
+        db = ActiveRecord::Base.configurations.deep_dup[database]
+        db['database'] = 'master'
+        ActiveRecord::Base.establish_connection(db)
+        ActiveRecord::Base.connection.recreate_database!(testdb['database'])
       when "oci", "oracle"
-        ActiveRecord::Base.establish_connection(:test)
+        ActiveRecord::Base.establish_connection(database)
         ActiveRecord::Base.connection.structure_drop.split(";\n\n").each do |ddl|
           ActiveRecord::Base.connection.execute(ddl)
         end
       when 'firebird'
-        ActiveRecord::Base.establish_connection(:test)
+        ActiveRecord::Base.establish_connection(database)
         ActiveRecord::Base.connection.recreate_database!
       else
-        raise "Cannot reset databases for '#{abcs['test']['adapter']}'"
+        raise "Cannot reset databases for '#{testdb['adapter']}'"
       end
     end
 
