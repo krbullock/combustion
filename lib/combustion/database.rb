@@ -10,7 +10,7 @@ module Combustion
 
     def self.reset_database(database=nil)
       database ||= 'test'
-      testdb = ActiveRecord::Base.configurations[database]
+      testdb = ActiveRecord::Base.configurations[database.to_s]
       case testdb['adapter']
       when /mysql/
         ActiveRecord::Base.establish_connection(database)
